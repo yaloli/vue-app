@@ -1,13 +1,20 @@
 <script>
 import { defineComponent, ref, onMounted, reactive, toRefs } from "vue";
 import { useMutation } from "@vue/apollo-composable";
+import Classify from "./components/Classify.vue"
+import Footer from "./components/Footer.vue"
 import gql from "graphql-tag";
 
 export default defineComponent({
+  name: 'Popup',
+  components: {
+    Classify, Footer
+  },
   setup() {
     const now = ref("saving");
     const title = ref("위시템을 저장 중입니다");
-    const footershow = ref(true);
+    const footerVisibility = ref(true);
+    const bodyVisibility = ref(true)
     const thumb = ref(
       "chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/loader.gif"
     );
@@ -119,10 +126,13 @@ export default defineComponent({
       button,
       visible,
       containerVisibility,
+      footerVisibility,
+      bodyVisibility,
       ...toRefs(state),
       buttonclick,
     };
   },
+
 });
 </script> 
 
@@ -149,6 +159,8 @@ export default defineComponent({
           </button>
         </div>
       </div>
+      <Classify v-show="bodyVisibility"/>
+      <Footer v-show="footerVisibility"/>
     </div>
   </div>
 </template>
@@ -237,7 +249,15 @@ export default defineComponent({
 #wishbucket-root .classify {
   width: 328px;
   height: auto;
+  margin:0px;
+  padding: 0px;
+  border: 0px;
   text-align: center;
+}
+#wishbucket-root .classify p {
+  margin:12px 0px 0px 0px;
+  padding: 0px;
+  border: 0px;
 }
 #wishbucket-root .tryClassifying {
   display: inline-block;
@@ -313,25 +333,5 @@ export default defineComponent({
 
   color: #9a9a9a;
 }
-#wishbucket-root .wishfooter {
-  width: 328px;
-  height: 45px;
-}
-#wishbucket-root label.buckets p {
-  margin: 0px;
-}
-#wishbucket-root .ischecked {
-  background: #7f50ff !important;
-  border-radius: 14px !important;
-  color: #ffffff !important;
-  border: 0px !important;
-  padding: 8px 13px 8px 13px !important;
-}
 
-#wishbucket-root div.wishfooter img {
-  width: 30px;
-  height: 30px;
-  float: right;
-  margin-right: 20px;
-}
 </style>
