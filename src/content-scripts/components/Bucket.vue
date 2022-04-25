@@ -14,6 +14,22 @@ export default {
 </template>
 
 <style>
+#wishbucket-root label.buckets {
+  float: left;
+  margin: 0px 7px 9px 0px;
+  border: 1px solid #9a9a9a;
+  box-sizing: border-box;
+  border-radius: 14px;
+  padding: 7px 12px 7px 12px;
+  font-family: "Noto Sans CJK KR";
+  font-style: normal;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 21px;
+  /* identical to box height */
+  text-align: center;
+  color: #9a9a9a;
+}
 #wishbucket-root label.buckets p {
   margin: 0px;
 }

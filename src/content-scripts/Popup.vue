@@ -198,7 +198,7 @@ export default defineComponent({
   height: auto;
   width: 328px;
 }
-#wishbucket-root .saving > div {
+#wishbucket-root .saving > div:nth-child(1) {
   width: 328px;
   height: 85px;
 }
@@ -246,30 +246,8 @@ export default defineComponent({
   margin-top: 22.5px;
   margin-bottom: 22.5px;
 }
-#wishbucket-root .classify {
-  width: 328px;
-  height: auto;
-  margin:0px;
-  padding: 0px;
-  border: 0px;
-  text-align: center;
-}
-#wishbucket-root .classify p {
-  margin:12px 0px 0px 0px;
-  padding: 0px;
-  border: 0px;
-}
-#wishbucket-root .tryClassifying {
-  display: inline-block;
-  height: 52px;
-  width: 284px;
-  border-top: 1px solid #e6e6e6;
-}
-#wishbucket-root .selectBucket {
-  display: inline-block;
-  height: auto;
-  width: 284px;
-}
+
+
 #wishbucket-root button {
   font-family: "Noto Sans KR" !important;
   background-color: none !important;
@@ -303,35 +281,7 @@ export default defineComponent({
   width: 254px;
   float: left;
 }
-#wishbucket-root .thumbwrap {
-  vertical-align: auto;
-  float: left;
-  width: 30px;
-  height: 30px;
-  margin-top: 11px;
-  margin-bottom: 11px;
-}
-#wishbucket-root div.thumbwrap img {
-  width: 28px;
-  height: 28px;
-}
-#wishbucket-root label.buckets {
-  float: left;
-  margin: 0px 7px 9px 0px;
-  border: 1px solid #9a9a9a;
-  box-sizing: border-box;
-  border-radius: 14px;
-  padding: 7px 12px 7px 12px;
-  font-family: "Noto Sans CJK KR";
-  font-style: normal;
-  font-weight: 700;
-  font-size: 14px;
-  line-height: 21px;
-  /* identical to box height */
 
-  text-align: center;
 
-  color: #9a9a9a;
-}
 
 </style>
