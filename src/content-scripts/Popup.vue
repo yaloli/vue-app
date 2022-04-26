@@ -13,8 +13,8 @@ export default defineComponent({
   setup() {
     const now = ref("saving");
     const title = ref("위시템을 저장 중입니다");
-    const footerVisibility = ref(true);
-    const bodyVisibility = ref(true)
+    const footerVisibility = ref(false);
+    const bodyVisibility = ref(false)
     const thumb = ref(
       "chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/loader.gif"
     );
@@ -90,6 +90,8 @@ export default defineComponent({
         button.value = "삭제";
         thumb.value = baseUrl.value + "check.png";
         title.value = "저장 완료!";
+        bodyVisibility.value = true
+        footerVisibility.value = true
       } else if (state === "deleting") {
         now.value = state;
         button.value = "저장";
