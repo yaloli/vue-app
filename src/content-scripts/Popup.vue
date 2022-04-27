@@ -1,28 +1,38 @@
 <script>
 import { defineComponent, ref, onMounted, reactive, toRefs } from "vue";
-import { useMutation } from "@vue/apollo-composable";
-import Classify from "./components/Classify.vue"
-import Footer from "./components/Footer.vue"
+import {
+  useMutation,
+  useQuery,
+  useResult,
+  useApolloClient,
+} from "@vue/apollo-composable";
+import Classify from "./components/Classify.vue";
+import Footer from "./components/Footer.vue";
 import gql from "graphql-tag";
+import Toggle from "@vueform/toggle";
 
 export default defineComponent({
-  name: 'Popup',
+  name: "Popup",
   components: {
-    Classify, Footer
+    Classify,
+    Footer,
+    Toggle,
   },
   setup() {
     const now = ref("saving");
     const title = ref("위시템을 저장 중입니다");
     const footerVisibility = ref(false);
-    const bodyVisibility = ref(false)
+    const bodyVisibility = ref(false);
     const thumb = ref(
       "chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/loader.gif"
     );
     const button = ref("저장");
     const baseUrl = ref("chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/");
     const containerVisibility = ref(false);
+    const mybuckets = ref([]);
     const seen = ref(true);
     const visible = ref(true);
+    const value = ref(true);
     var token = "";
     const state = reactive({
       currentTab: null,
@@ -41,25 +51,56 @@ export default defineComponent({
         }
       `;
     const MUTATION_TOKEN = gql`
-      mutation {
-        authenticate(input: { accessToken: "${token}", identityProvider: GUEST }) {
+      mutation refreshToken($token: String!) {
+        authenticate(input: { accessToken: $token, identityProvider: GUEST }) {
           message
           token
         }
       }
     `;
+    const QUERY_MYZIMFOLDERS = gql`
+      query {
+        zimFolderConnection(filter: {}) {
+          cursor
+          hasNextPage
+          zimFolders {
+            tag {
+              name
+            }
+          }
+        }
+      }
+    `;
+    const { client } = useApolloClient();
+    async function getZimFolders() {
+      return client.query({
+        query: QUERY_MYZIMFOLDERS,
+        context: {
+          headers: {
+            authorization: token ? `Bearer ${token}` : "",
+          },
+        },
+      });
+    }
     const {
       mutate: zimItem,
       onDone: ZimComplete,
       onError: ZimError,
     } = useMutation(MUTATION_ZIM);
-    ZimComplete((result) => {
-      console.log(result);
+    ZimComplete(() => {
+      getZimFolders().then((res) => {
+        let tmpArr = res.data.zimFolderConnection.zimFolders;
+        for (let i in tmpArr) {
+          mybuckets.value.push(tmpArr[i].tag.name);
+        }
+      });
       setState("savecomplete");
     });
     ZimError((err) => {
       console.log(err);
-      refreshToken();
+      refreshToken({
+        token,
+      });
     });
 
     const {
@@ -68,11 +109,11 @@ export default defineComponent({
       onError: refreshError,
     } = useMutation(MUTATION_TOKEN);
     refreshComplete((result) => {
-      chrome.storage.local.set({ token: result.data.authenticate.token })
+      chrome.storage.local.set({ token: result.data.authenticate.token });
       chrome.runtime.sendMessage({
-            type: "reToken",
-            token: result.data.authenticate.token,
-          })
+        type: "reToken",
+        token: result.data.authenticate.token,
+      });
     });
     refreshError((err) => {
       console.log(err);
@@ -90,8 +131,8 @@ export default defineComponent({
         button.value = "삭제";
         thumb.value = baseUrl.value + "check.png";
         title.value = "저장 완료!";
-        bodyVisibility.value = true
-        footerVisibility.value = true
+        bodyVisibility.value = true;
+        footerVisibility.value = true;
       } else if (state === "deleting") {
         now.value = state;
         button.value = "저장";
@@ -107,18 +148,42 @@ export default defineComponent({
         button.value = "삭제";
         thumb.value = baseUrl.value + "loader.gif";
         title.value = "위시템을 저장 중입니다";
+      } else if (state === "addBucket") {
+        now.value = state;
+        button.value = "삭제";
+        thumb.value = baseUrl.value + "loader.gif";
+        title.value = "위시템을 저장 중입니다";
+        bodyVisibility.value = false;
+        footerVisibility.value = false;
+      } else if (state === "toBucket") {
+        now.value = state;
+        thumb.value = baseUrl.value + "loader.gif";
+        title.value = "버킷에 담는 중입니다";
+      } else if (state === "toBucketComplete") {
+        now.value = state;
+        thumb.value = baseUrl.value + "check.png";
+        title.value = "버킷 담기 완료!";
       }
     }
 
     function buttonclick() {
-      if (button.value === "저장"&&now.value==="saving") {
-        containerVisibility.value = true
+      if (button.value === "저장" && now.value === "saving") {
+        now.value === "";
+        containerVisibility.value = true;
         zimItem();
       }
+    }
 
-      // chrome.storage.local.get(["token"], function (result) {
-      //   console.log("Value currently is " + result.token);
-      // });
+    function plusButton() {
+      setState("addBucket");
+    }
+
+    function cancelButton() {
+      setState("savecomplete");
+    }
+    function addtonewbucket(){
+      setState("savecomplete");
+    
     }
 
     return {
@@ -130,11 +195,16 @@ export default defineComponent({
       containerVisibility,
       footerVisibility,
       bodyVisibility,
+      mybuckets,
+      value,
       ...toRefs(state),
       buttonclick,
+      setState,
+      plusButton,
+      cancelButton,
+      addtonewbucket,
     };
   },
-
 });
 </script> 
 
@@ -150,7 +220,7 @@ export default defineComponent({
     "
   >
     <div class="saving">
-      <div>
+      <div v-if="now !== 'addBucket'">
         <div class="loading top">
           <div class="imgwrap"><img :src="thumb" alt /></div>
         </div>
@@ -161,14 +231,67 @@ export default defineComponent({
           </button>
         </div>
       </div>
-      <Classify v-show="bodyVisibility"/>
-      <Footer v-show="footerVisibility"/>
+      <div v-else>
+        <div class="paddinglayer">
+          <div class="newBucket"><p>새 버킷 만들기</p></div>
+          <div class="newBucketName"><p>새 버킷 이름</p></div>
+          <div class="input"><input spellcheck="false" /></div>
+          <div class="isOpen">
+            <p>비공개 버킷</p>
+            <Toggle
+              v-model="value"
+              on-label="Yes"
+              off-label="No"
+              on-background="#7F50FF"
+              :width="80"
+              :height="30"
+            />
+          </div>
+          <div class="bottonButtons">
+            <button @click="cancelButton" class="bottomButton cancel">
+              취소
+            </button>
+            <button @click="addtonewbucket" class="bottomButton toBucket">새 버킷에 담기</button>
+          </div>
+        </div>
+      </div>
+      <Classify
+        v-show="bodyVisibility"
+        :buckets="mybuckets"
+        :plusButton="plusButton"
+        :setState="setState"
+      />
+      <Footer v-show="footerVisibility" />
     </div>
   </div>
 </template>
 
-
+<style src="@vueform/toggle/themes/default.css">
+</style>
 <style>
+:root {
+  --toggle-bg-on: #7f50ff;
+  --toggle-border-on: #7f50ff;
+  --toggle-width: 3rem;
+  --toggle-height: 1.25rem;
+  --toggle-border: 0.125rem;
+  --toggle-font-size: 0.75rem;
+  --toggle-duration: 150ms;
+  --toggle-bg-off: #e5e7eb;
+  --toggle-bg-on-disabled: #d1d5db;
+  --toggle-bg-off-disabled: #e5e7eb;
+  --toggle-border-off: #e5e7eb;
+  --toggle-border-on-disabled: #d1d5db;
+  --toggle-border-off-disabled: #e5e7eb;
+  --toggle-ring-width: 0px;
+  --toggle-ring-color: #ffffff00;
+  --toggle-text-on: #ffffff;
+  --toggle-text-off: #374151;
+  --toggle-text-on-disabled: #9ca3af;
+  --toggle-text-off-disabled: #9ca3af;
+  --toggle-handle-enabled: #ffffff;
+  --toggle-handle-disabled: #f3f4f6;
+}
 #wishbucket-root {
   all: unset;
   background-color: none !important;
@@ -202,7 +325,7 @@ export default defineComponent({
 }
 #wishbucket-root .saving > div:nth-child(1) {
   width: 328px;
-  height: 85px;
+  height: auto;
 }
 #wishbucket-root #saving {
   vertical-align: auto !important;
@@ -249,8 +372,7 @@ export default defineComponent({
   margin-bottom: 22.5px;
 }
 
-
-#wishbucket-root button {
+#wishbucket-root div.wishbucket-button > button {
   font-family: "Noto Sans KR" !important;
   background-color: none !important;
   padding: 0 !important;
@@ -263,7 +385,6 @@ export default defineComponent({
   font-family: "Noto Sans KR" !important;
   font-style: normal !important;
   font-weight: 700 !important;
-  font-size: 12px !important;
   background: #e6e6e6 !important;
   color: black !important;
 }
@@ -271,6 +392,8 @@ export default defineComponent({
   line-height: 40px;
   margin: 0px;
   padding: 0px;
+  text-align: center !important;
+  font-size: 12px !important;
 }
 #wishbucket-root .text_area {
   vertical-align: auto;
@@ -282,8 +405,129 @@ export default defineComponent({
   font-weight: 700;
   width: 254px;
   float: left;
+  color: #000000;
 }
-
-
-
+#wishbucket-root div.paddinglayer {
+  margin: 0px;
+  padding: 22px 22px 30px 22px;
+}
+#wishbucket-root div.newBucket {
+  font-family: "Noto Sans KR" !important;
+  font-style: normal !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  line-height: 21px !important;
+  /* identical to box height */
+  text-align: center;
+  color: #181717;
+  margin: 0px 0px 50px 0px;
+  padding: 0px;
+}
+#wishbucket-root div.newBucket > p {
+  font-family: "Noto Sans KR" !important;
+  font-style: normal !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  /* identical to box height */
+  text-align: center;
+  color: #181717;
+  margin: 0px;
+  padding: 0px;
+}
+#wishbucket-root div.newBucketName {
+  font-family: "Noto Sans KR";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 18px;
+  /* identical to box height */
+  color: #565656;
+  margin: 0px;
+  padding: 0px;
+  text-align: left;
+}
+#wishbucket-root div.newBucketName > p {
+  font-family: "Noto Sans KR";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  /* identical to box height */
+  color: #565656;
+  margin: 0px;
+  padding: 0px;
+  text-align: left;
+}
+#wishbucket-root div.input {
+  font-family: "Noto Sans KR";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 18px;
+  /* identical to box height */
+  color: #565656;
+  margin: 10px 0px 0px 0px;
+  padding: 0px;
+  text-align: center;
+  border-bottom: 2px solid #7f50ff;
+}
+#wishbucket-root div.input input {
+  width: 100%;
+  border: none;
+  font-family: "Yde street";
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 21px;
+  text-align: center;
+  margin: 8px 0px;
+}
+#wishbucket-root div.input input:focus {
+  outline: none;
+}
+#wishbucket-root div.isOpen {
+  margin: 22px 0px 56px 0px;
+  padding: 0px;
+  border: 0px;
+  text-align: left;
+}
+#wishbucket-root div.isOpen > p {
+  font-family: "Noto Sans KR";
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 18px;
+  color: #565656;
+  text-align: left;
+  display: inline-block;
+  width: 65px;
+}
+#wishbucket-root div.toggle-container {
+  display: inline-block;
+  margin-left: 15px;
+}
+#wishbucket-root button.bottomButton {
+  width: 137px;
+  height: 54px;
+  background: #e6e6e6;
+  border-radius: 16px;
+  text-align: center;
+  color: #181717;
+  margin: 0px 10px 0px 0px;
+  border: 0px;
+  padding: 0px;
+  font-family: 'Noto Sans KR';
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+}
+#wishbucket-root button.toBucket {
+  width: 137px;
+  height: 54px;
+  background: #7f50ff;
+  border-radius: 16px;
+  color: #ffffff;
+  margin: 0px;
+  border: 0px;
+  padding: 0px;
+}
 </style>

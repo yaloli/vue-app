@@ -5,6 +5,14 @@ import { ApolloClient, createHttpLink, InMemoryCache, } from "@apollo/client/cor
 import { setContext } from 'apollo-link-context';
 import clickOutside from "./click-outside.js";
 import { DefaultApolloClient } from "@vue/apollo-composable";
+import VueformToggle from '@vueform/toggle';
+
+//글씨체 추가
+let linkTag = document.createElement("link");
+linkTag.setAttribute("href","https://fonts.googleapis.com/css?family=Noto+Sans+KR:400,500,700&amp;display=swap&amp;subset=korean");
+linkTag.setAttribute("rel","stylesheet");
+document.head.appendChild(linkTag);
+
 
 // const vm = createApp(Popup).use(clickOutside).mount(mountEl);
 const MOUNT_EL_ID = "wishbucket-root";
@@ -27,7 +35,7 @@ createApp({
     provide(DefaultApolloClient, apolloClient);
   },
   render: () => h(Popup)
-}).use(clickOutside).mount(mountEl);
+}).use(clickOutside).component('Toggle', VueformToggle).mount(mountEl);
 
 
 //클릭이벤트 발생시 background.js 로 부터 토큰값이 옴.

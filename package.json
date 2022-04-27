@@ -10,6 +10,7 @@
     "@apollo/client": "^3.5.10",
     "@vue/apollo-composable": "^4.0.0-alpha.16",
     "@vue/apollo-option": "^4.0.0-alpha.16",
+    "@vueform/toggle": "^2.0.1",
     "apollo-link-context": "^1.0.20",
     "graphql": "^15.8.0",
     "graphql-tag": "^2.12.6",

@@ -1,20 +1,93 @@
-<html>
+<html lang="ko">
   <head>
+    <meta charset="utf-8">
     <style>
       body{
         background-color: black;
       }
+      div.logo{
+        width: auto;
+        height: 180px;
+      }
+      div.contentbox{
+        margin-left: 52;
+      }
+      div.textbox{
+        height: 257px;
+      }
       #canvas{
         border-radius: 10px;
-        margin-top: 600px;
-        margin-left: 100px;
         align-items: center;
       }
-      
+      div.whole{
+        width: 1100px;
+        height: 100%;
+        position: relative;
+        margin: 0 auto;
+      }
+      div.left{
+        width: 50%;
+        height: 100%;
+        float: left;
+      }
+      div.right{
+        width: 50%;
+        height: 100%;
+        float: left;
+      }
+      div.right > img{
+        float: right;
+        width: 50%;
+        height: auto;
+        position:absolute; bottom:0px;
+      }
+      div.right > div{
+        float: right;
+        height: 97px;
+      }
+      div.appdown{
+        margin-top: 42px;
+        margin-right: 50px;
+        width: 100%;
+        height: 180px;
+        font-family: 'Montserrat';
+        font-style: normal;
+        font-weight: 700;
+        font-size: 18px;
+        line-height: 22px;
+        /* identical to box height */
+
+        text-align: right;
+
+        /* darkgray */
+
+        color: #565656;
+      }
+      .logo > img{
+        width: 213px;
+        height: 37px;
+        margin-top: 42px;
+      }
     </style>
+    <title>Wish Bucket</title>
   </head> 
   <body>
-    <canvas id="canvas"></canvas>
-    <script src="bundle.js"></script>
+    <div class="whole">
+      <div class="left">
+        <div class="logo"><img src="./logo.png"/></div>
+        <div class="contentbox">
+          <div class="textbox">
+            <p>PC에서도 위시템</p>
+            <p>바로저장!</p>
+          </div>
+          <canvas id="canvas"></canvas>
+        </div>
+        <script src="bundle.js"></script>
+      </div>
+      <div class="right">
+        <div class="appdown">APP DOWNLOAD</div>
+        <img src="./rightimg.png" alt="">
+      </div>
+    </div>
   </body>
 </html>

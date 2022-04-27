@@ -4,11 +4,11 @@
       <div class="tryClassifying">
         <p class="text_area">아이템을 버킷에 분류해보세요</p>
         <div class="thumbwrap">
-          <a href="#"><img ></a>
+          <a @click="plusButton"><img :src="plus"/></a>
         </div>
       </div>
       <div class="selectBucket">
-        <Bucket/><Bucket/><Bucket/>
+        <Bucket v-for="(bucket, index) in buckets" v-bind:key="index" :index="index" :bucketname="bucket" @click="setState('toBucketComplete')"></Bucket>
       </div>
     </div>
 
@@ -18,7 +18,23 @@
 import Bucket from './Bucket.vue'
 export default {
     name: 'Classify',
-    components:{Bucket}
+    components:{Bucket},
+    props:{
+      plus:{
+        type:String,
+        default:"chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/plus.png"
+      },
+      buckets:{
+        type:Array,
+        default:["버킷목록을 가져오지 못함"]
+      },
+      setState:{
+        type:Function
+      },
+      plusButton:{
+        type:Function
+      },
+    }
 }
 
 </script>
@@ -48,12 +64,13 @@ export default {
   float: left;
   width: 30px;
   height: 30px;
-  margin-top: 11px;
-  margin-bottom: 11px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 #wishbucket-root div.thumbwrap img {
   width: 28px;
   height: 28px;
+  filter: none;
 }
 #wishbucket-root .selectBucket {
   display: inline-block;
