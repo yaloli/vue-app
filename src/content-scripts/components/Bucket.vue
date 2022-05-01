@@ -4,7 +4,7 @@
 export default {
   data() {
     return {
-      bucketclass: "buckets",
+      on : this.check
     };
   },
   name: "Bucket",
@@ -13,14 +13,14 @@ export default {
       type: String,
       default: "",
     },
-    index: {
-      type: Number,
-      default: 0,
+    check: {
+      type: Boolean,
+      default: false,
     },
   },
   methods: {
     BucketClick() {
-      this.bucketclass = "buckets ischecked";
+      this.on = true;
     },
   },
 };
@@ -28,7 +28,7 @@ export default {
 
 <template>
   <button @click="BucketClick">
-    <div :class="bucketclass">
+    <div class="buckets" :class="{ischecked:on}">
       <p>{{ bucketname }}</p>
     </div>
   </button>

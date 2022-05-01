@@ -9,14 +9,14 @@ import {
 import Classify from "./components/Classify.vue";
 import Footer from "./components/Footer.vue";
 import gql from "graphql-tag";
-import Toggle from "@vueform/toggle";
+import Newbucket from "./components/Newbucket.vue";
 
 export default defineComponent({
   name: "Popup",
   components: {
     Classify,
     Footer,
-    Toggle,
+    Newbucket,
   },
   setup() {
     const now = ref("saving");
@@ -24,16 +24,22 @@ export default defineComponent({
     const footerVisibility = ref(false);
     const bodyVisibility = ref(false);
     const thumb = ref(
-      "chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/loader.gif"
+      "chrome-extension://dhgdkccoiadplgiocidlhgadfdkdmaaa/loader.gif"
     );
     const button = ref("저장");
-    const baseUrl = ref("chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/");
+    const baseUrl = ref("chrome-extension://dhgdkccoiadplgiocidlhgadfdkdmaaa/");
     const containerVisibility = ref(false);
     const mybuckets = ref([]);
+    var mybucket = []
+    const zimId = ref("")
     const seen = ref(true);
     const visible = ref(true);
-    const value = ref(true);
+    const isClose = ref(false);
     var token = "";
+    var tagIdnow = "";
+    var bucketnamenow ="";
+    const laststate = ref("");
+    const isNewbucket = ref(false);
     const state = reactive({
       currentTab: null,
     });
@@ -43,21 +49,8 @@ export default defineComponent({
         state.currentTab = await tab;
       });
     });
-    const MUTATION_ZIM = gql`
-        mutation{
-          zimItem(input:{url:"${location.href}",tags:[]}){
-            message
-          }
-        }
-      `;
-    const MUTATION_TOKEN = gql`
-      mutation refreshToken($token: String!) {
-        authenticate(input: { accessToken: $token, identityProvider: GUEST }) {
-          message
-          token
-        }
-      }
-    `;
+
+
     const QUERY_MYZIMFOLDERS = gql`
       query {
         zimFolderConnection(filter: {}) {
@@ -65,6 +58,7 @@ export default defineComponent({
           hasNextPage
           zimFolders {
             tag {
+              id
               name
             }
           }
@@ -82,16 +76,33 @@ export default defineComponent({
         },
       });
     }
+
+
+    const MUTATION_ZIM = gql`
+        mutation zimItem($url: String!){
+          zimItem(input:{url:$url,tags:[]}){
+            message
+            zim{
+              id
+            }
+          }
+        }
+      `;
     const {
       mutate: zimItem,
       onDone: ZimComplete,
       onError: ZimError,
     } = useMutation(MUTATION_ZIM);
-    ZimComplete(() => {
+    ZimComplete((result) => {
+      zimId.value = result.data.zimItem.zim.id
       getZimFolders().then((res) => {
         let tmpArr = res.data.zimFolderConnection.zimFolders;
+        mybuckets.value = []
         for (let i in tmpArr) {
-          mybuckets.value.push(tmpArr[i].tag.name);
+          let name = tmpArr[i].tag.name
+          let id  = tmpArr[i].tag.id
+          mybuckets.value.push( {id, name, check:false} );
+          mybucket.push(name)
         }
       });
       setState("savecomplete");
@@ -101,14 +112,25 @@ export default defineComponent({
       refreshToken({
         token,
       });
+      zimItem({url:location.href})
     });
 
+
+    const MUTATION_TOKEN = gql`
+      mutation refreshToken($token: String!) {
+        authenticate(input: { accessToken: $token, identityProvider: GUEST }) {
+          message
+          token
+        }
+      }
+    `;
     const {
       mutate: refreshToken,
       onDone: refreshComplete,
       onError: refreshError,
     } = useMutation(MUTATION_TOKEN);
     refreshComplete((result) => {
+      token = result.data.authenticate.token
       chrome.storage.local.set({ token: result.data.authenticate.token });
       chrome.runtime.sendMessage({
         type: "reToken",
@@ -118,6 +140,60 @@ export default defineComponent({
     refreshError((err) => {
       console.log(err);
     });
+
+
+    const MUTATION_TAGZIMS = gql`
+      mutation tagZims($zimId: ID!, $tagId: ID!){
+        tagZims(input:{zimIds:[$zimId], tagIds:[$tagId]}){
+          message
+        }
+      }
+    `
+    const {
+      mutate: tagZims,
+      onDone: TagComplete,
+      onError: TagError,
+    } = useMutation(MUTATION_TAGZIMS);
+    TagComplete(() => {
+      setState("toBucketComplete")
+    });
+    TagError((err) => {
+      console.log(err)
+      refreshToken({
+        token,
+      });
+      tagZims({zimId:zimId.value, tagId: tagIdnow})
+    });
+
+    const MUTATION_CREATETAG = gql`
+      mutation createTag($bucketname:String!, $isOpen:Boolean!){
+        createTag(input:{name:$bucketname, isOpen:$isOpen}){
+          tag{
+            id
+            name
+          }
+        }
+      }
+    `
+    const {
+      mutate: createTag,
+      onDone: CreatetagComplete,
+      onError: CreatetagError,
+    } = useMutation(MUTATION_CREATETAG);
+    CreatetagComplete((result) => {
+      const tagId = result.data.createTag.tag.id
+      const tagName = result.data.createTag.tag.name
+      mybuckets.value.push( { id: tagId, name: tagName, check:true} );
+      toBucket(tagId)
+    });
+    CreatetagError((err) => {
+      console.log(err)
+      refreshToken({
+        token,
+      });
+      createTag({ bucketname: bucketnamenow, isOpen: !isClose.value })
+    });
+
 
     function getToken() {
       chrome.storage.local.get(["token"], (a) => {
@@ -145,16 +221,19 @@ export default defineComponent({
         title.value = "삭제 완료!";
       } else if (state === "saving") {
         now.value = state;
-        button.value = "삭제";
+        button.value = "저장";
         thumb.value = baseUrl.value + "loader.gif";
         title.value = "위시템을 저장 중입니다";
       } else if (state === "addBucket") {
+        laststate.value = now.value;
         now.value = state;
         button.value = "삭제";
         thumb.value = baseUrl.value + "loader.gif";
         title.value = "위시템을 저장 중입니다";
         bodyVisibility.value = false;
         footerVisibility.value = false;
+        isNewbucket.value = true;
+
       } else if (state === "toBucket") {
         now.value = state;
         thumb.value = baseUrl.value + "loader.gif";
@@ -170,7 +249,12 @@ export default defineComponent({
       if (button.value === "저장" && now.value === "saving") {
         now.value === "";
         containerVisibility.value = true;
-        zimItem();
+        zimItem({url:location.href});
+      }else if (button.value === "삭제") {
+          chrome.runtime.sendMessage({
+          type: "reToken",
+          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJwaWNraW4tZ3FsLnBobG94Y29ycC5pbyIsInN1YiI6IjE4NDQiLCJleHAiOjE2NTEyMjg3MDgsImlhdCI6MTY1MTIyNTEwOH0.ZDOkVGulOiwj-dRZL-eHd5I5HRmaOxKjCqVoniCHmv8",
+        });
       }
     }
 
@@ -179,11 +263,28 @@ export default defineComponent({
     }
 
     function cancelButton() {
-      setState("savecomplete");
+      now.value=""
     }
-    function addtonewbucket(){
-      setState("savecomplete");
-    
+    function addtonewbucket(bucketname, isOpen){
+      //이미 있는 이름이거나 입력값이 없으면 새 버킷을 생성하지 않는다.
+      if (bucketname&&!(mybucket.includes(bucketname))){
+      mybucket.push(bucketname)
+      isClose.value = isOpen
+      now.value=""
+      title.value = "버킷을 생성 중입니다";
+      thumb.value = baseUrl.value + "loader.gif";
+      bucketnamenow = bucketname
+      createTag({ bucketname, isOpen: !isOpen })
+
+      }else{
+        console.log("이름을 적어주세요!")
+      }
+    }
+
+    function toBucket(tagId){
+      setState("toBucket")
+      tagIdnow = tagId
+      tagZims({zimId:zimId.value, tagId})
     }
 
     return {
@@ -196,13 +297,16 @@ export default defineComponent({
       footerVisibility,
       bodyVisibility,
       mybuckets,
-      value,
+      isClose,
+      isNewbucket,
+      laststate,
       ...toRefs(state),
       buttonclick,
       setState,
       plusButton,
       cancelButton,
       addtonewbucket,
+      toBucket,
     };
   },
 });
@@ -215,7 +319,15 @@ export default defineComponent({
     v-show="containerVisibility"
     v-click-outside="
       () => {
-        containerVisibility = false;
+        if (isNewbucket){
+          isNewbucket = false;
+          setState(laststate);
+          footerVisibility = true;
+          bodyVisibility =true;
+        }else{
+          containerVisibility = false;
+          setState('saving')
+        }
       }
     "
   >
@@ -231,35 +343,13 @@ export default defineComponent({
           </button>
         </div>
       </div>
-      <div v-else>
-        <div class="paddinglayer">
-          <div class="newBucket"><p>새 버킷 만들기</p></div>
-          <div class="newBucketName"><p>새 버킷 이름</p></div>
-          <div class="input"><input spellcheck="false" /></div>
-          <div class="isOpen">
-            <p>비공개 버킷</p>
-            <Toggle
-              v-model="value"
-              on-label="Yes"
-              off-label="No"
-              on-background="#7F50FF"
-              :width="80"
-              :height="30"
-            />
-          </div>
-          <div class="bottonButtons">
-            <button @click="cancelButton" class="bottomButton cancel">
-              취소
-            </button>
-            <button @click="addtonewbucket" class="bottomButton toBucket">새 버킷에 담기</button>
-          </div>
-        </div>
-      </div>
+      <Newbucket v-else :cancelButton="cancelButton" :addtonewbucket="addtonewbucket" :isClose="isClose"/>
       <Classify
         v-show="bodyVisibility"
         :buckets="mybuckets"
         :plusButton="plusButton"
         :setState="setState"
+        :toBucket="toBucket"
       />
       <Footer v-show="footerVisibility" />
     </div>

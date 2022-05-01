@@ -4,9 +4,7 @@ export default function directive(app) {
       beforeMount(el, binding) {
         el.clickOutsideEvent = (evt) => {
           evt.stopPropagation();
-          console.log("7");
           if (!(el === evt.target || el.contains(evt.target))) {
-            console.log(el);
             binding.value(evt, el);
           }
         };

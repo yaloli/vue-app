@@ -13,7 +13,7 @@ export default {
     props:{
       gear:{
         type:String,
-        default:"chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/gear.png"
+        default:"chrome-extension://dhgdkccoiadplgiocidlhgadfdkdmaaa/gear.png"
       }
     }
 }

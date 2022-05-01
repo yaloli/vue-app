@@ -8,7 +8,7 @@
         </div>
       </div>
       <div class="selectBucket">
-        <Bucket v-for="(bucket, index) in buckets" v-bind:key="index" :index="index" :bucketname="bucket" @click="setState('toBucketComplete')"></Bucket>
+        <Bucket v-for="bucket in buckets" v-bind:key="bucket.id" :id="bucket.id" :bucketname="bucket.name" :check="bucket.check" @click="toBucket(bucket.id)"></Bucket>
       </div>
     </div>
 
@@ -22,7 +22,7 @@ export default {
     props:{
       plus:{
         type:String,
-        default:"chrome-extension://ghlehbaadkhaeglpngmpecnmphoilibf/plus.png"
+        default:"chrome-extension://dhgdkccoiadplgiocidlhgadfdkdmaaa/plus.png"
       },
       buckets:{
         type:Array,
@@ -34,6 +34,9 @@ export default {
       plusButton:{
         type:Function
       },
+      toBucket:{
+        type:Function
+      }
     }
 }
 

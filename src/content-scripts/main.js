@@ -51,7 +51,7 @@ chrome.runtime.onMessage.addListener(message => {
       }
     });
     apolloClient.setLink(authLink.concat(httpLink))
-    document.getElementById('wishButton').click()
+    
   } else if (message.order) { //백그라운드에서 DOM을 제어할 때 사용할 부분
     switch (message.state) {
       case "save":
